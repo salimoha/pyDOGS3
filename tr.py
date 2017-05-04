@@ -34,9 +34,9 @@ def transient_removal(x):
     for kk in np.arange(k):
         y[kk] = np.var(x[kk + 1:]) * 1.0 / (N - kk - 1.0)
     y = np.array(-y)
-    ind = y.argmax(0)
-#     print('index of transient point in the signal:')
-#     print(ind)
+    # ind = y.argmax(0)
+    ind = np.argmax(y)
+
     return ind
 
 def transient_drag(x,Safety=13):

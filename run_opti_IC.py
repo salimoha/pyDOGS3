@@ -3,6 +3,7 @@ import os, inspect
 import dogs, uq
 import scipy.io as io
 from pathlib import Path
+import tr
 import shutil
 
 def DOGS_standlone():
@@ -38,9 +39,11 @@ def DOGS_standlone():
             T = data['T'][0]
 
             zs = np.loadtxt("allpoints/surr_J_new.dat")
-            J = np.abs(np.mean(zs) - y0)[0]  # FIXME y0=0
+            J = np.abs(np.mean(zs) - y0)[0]
+
             xx = uq.data_moving_average(zs, 40).values
-            sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx, 18)[0])
+            ind = tr.transient_removal(xx)
+            sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx[ind:], 18)[0])
             t = T_lorenz
 
             yE = np.hstack((yE, J))
@@ -68,7 +71,7 @@ def DOGS_standlone():
 
                 # Read from surr_J_new.
                 zs = np.loadtxt("allpoints/surr_J_new.dat")
-                J = np.abs(np.mean(zs) - y0)[0]  # FIXME y0=0
+                J = np.abs(np.mean(zs) - y0)[0]
 
                 xx = uq.data_moving_average(zs, 40).values
                 sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx, 18)[0])
@@ -121,7 +124,7 @@ def DOGS_standlone():
             print('==================================================')
             print('initialization is completed')
             print('iter k = ', var_opt['iter'])
-            r = input('asdfasdf')
+            r = input('Initializtion complete, type anything to continue: ')
 
             # Run one iteration after initialization.
             dogs.DOGS_standalone_lorenz_IC()
@@ -164,8 +167,8 @@ def run_opti():
         print('stop = ', stop)
     return
 ################################################################################################################
-#run_opti()
-DOGS_standlone()
+run_opti()
+
 # Delete the directory of allpoints
-#current_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-#shutil.rmtree(current_path + "/allpoints")
+current_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+shutil.rmtree(current_path + "/allpoints")
