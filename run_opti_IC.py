@@ -5,9 +5,9 @@ import scipy.io as io
 from pathlib import Path
 import tr
 import shutil
-from dogs import physical_bounds, bounds
-
 ##########  Initialize function ##########
+
+
 def Initialize_IC():
     
     # The following lines are for generate the directory:
@@ -16,7 +16,7 @@ def Initialize_IC():
     # if not os.path.exists(apts):
     #     os.makedirs(apts)
     
-    n = 1  # Dimension of data
+    n = 3  # Dimension of data
     K = 3  # Tuning parameter for continuous search function
     Nm = 8  # Initial mesh grid size
     L = 1  # Tuning parameter for discrete search function
@@ -31,31 +31,27 @@ def Initialize_IC():
     # y0: estimate value for minimum
     if n == 1:
         xE = np.array([[0.5, 0.75]])
-        y0 = np.array([23.5712])
         bnd2 = np.array([30])
         bnd1 = np.array([24])
+
     elif n == 2:
         xE = np.array([[0.5, 0.75, 0.5], [0.5, 0.5, 0.75]])
-        y0 = np.array([23.5712, 23.5712])
+
     elif n == 3:
         xE = np.array([[0.5, 0.5, 0.5, 0.75], [0.5, 0.5, 0.75, 0.5], [0.5, 0.75, 0.5, 0.5]])
-        y0 = np.array([23.5712, 23.5712, 23.5712])
         bnd2 = np.array([30, 30, 30])
         bnd1 = np.array([24, 24, 24])
     
-    xU = bounds(np.zeros([n, 1]), np.ones([n, 1]), n)
+    xU = dogs.bounds(np.zeros([n, 1]), np.ones([n, 1]), n)
 
-    xE = physical_bounds(xE, bnd1, bnd2)
-    xU = physical_bounds(xU, bnd1, bnd2)
+    xE = dogs.physical_bounds(xE, bnd1, bnd2)
+    xU = dogs.physical_bounds(xU, bnd1, bnd2)
     
     k = 0  # times of iteration, start with 0
-    iter_max = 50  # maximum iteration steps
-    T_lorenz = 5
-    h_lorenz = 0.005
+    iter_max = 500  # maximum iteration steps
     idx = 0
     
     var_opt = {}
-    var_opt['y0'] = y0
     var_opt['n'] = n
     var_opt['K'] = K
     var_opt['Nm'] = Nm
@@ -68,18 +64,12 @@ def Initialize_IC():
     var_opt['xU'] = xU
     var_opt['num_point'] = idx
     var_opt['flag'] = flag
-    var_opt['T_lorenz'] = T_lorenz
-    var_opt['h_lorenz'] = h_lorenz
     var_opt['iter'] = k
     var_opt['iter_max'] = iter_max
     io.savemat("allpoints/pre_opt_IC", var_opt)
     
-    # The following lines are for generating stop file.
-    # fout_stop = open("allpoints/stop.dat", 'w')
-    # fout_stop.write(str(0) + "\n")
-    # fout_stop.close()
-    
     return
+
 
 def DOGS_standlone():
     print('==================================================')
@@ -95,12 +85,11 @@ def DOGS_standlone():
     # Check whether or not it is the first iteraiton, if the optimizaton information file pre_opt_IC doesn't exist, then
     # generate that file:
     if not pre_opt_path.is_file():
-          Initialize_IC()
+        Initialize_IC()
 
     var_opt = io.loadmat("allpoints/pre_opt_IC")
     k = var_opt['iter'][0, 0]
-    T_lorenz = var_opt['T_lorenz'][0, 0]
-    y0 = var_opt['y0'][0]
+
 
     # initilizaiton
     if k == 0:  # k is the number of iteration. k = 0 means that the initialization is not finished.
@@ -114,12 +103,12 @@ def DOGS_standlone():
             T = data['T'][0]
 
             zs = np.loadtxt("allpoints/surr_J_new.dat")
-            J = np.abs(np.mean(zs) - y0)[0]
 
             xx = uq.data_moving_average(zs, 40).values
             ind = tr.transient_removal(xx)
             sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx[ind:], 18)[0])
-            t = T_lorenz
+            t = len(zs)
+            J = np.abs(np.mean(xx[ind:]))
 
             yE = np.hstack((yE, J))
             SigmaT = np.hstack((SigmaT, sig))
@@ -146,11 +135,13 @@ def DOGS_standlone():
 
                 # Read from surr_J_new.
                 zs = np.loadtxt("allpoints/surr_J_new.dat")
-                J = np.abs(np.mean(zs) - y0)[0]
 
                 xx = uq.data_moving_average(zs, 40).values
+                ind = tr.transient_removal(xx)
                 sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx, 18)[0])
-                t = T_lorenz
+                t = len(zs)
+                J = np.abs(np.mean(xx[ind:]))
+
                 yE = np.hstack((yE, J))
                 SigmaT = np.hstack((SigmaT, sig))
                 T = np.hstack((T, t))
@@ -175,7 +166,7 @@ def DOGS_standlone():
             # Generate the point that we want to evaluate.
             xcurr = np.copy(xE[:, len(yE)])
             fout = open("allpoints/pts_to_eval.dat", 'w')
-            keywords = ['Awin', 'lambdain', 'langle']
+            keywords = ['Awin', 'lambdain', 'fanglein']
             fout.write(str('flagin') + '=' + str(int(flag)) + "\n")
             fout.write(str('IDin') + '=' + str(int(len(yE))) + "\n")
             for j in range(n):
@@ -195,20 +186,21 @@ def DOGS_standlone():
             var_opt['iter'] = 1
 
             io.savemat("allpoints/pre_opt_IC", var_opt)
+
+            # The following are just for displaying:
             print('==================================================')
             print('==================================================')
-            print('initialization is completed')
             print('iter k = ', var_opt['iter'])
             r = input('Initializtion complete, type anything to continue: ')
 
             # Run one iteration after initialization.
-            dogs.DOGS_standalone_lorenz_IC()
+            dogs.DOGS_standalone_IC()
 
             return
 
     else:
 
-        dogs.DOGS_standalone_lorenz_IC()
+        dogs.DOGS_standalone_IC()
         return
 
 
@@ -244,6 +236,8 @@ def run_opti():
 ################################################################################################################
 run_opti()
 DOGS_standlone()
+
 # Delete the directory of allpoints
 current_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 shutil.rmtree(current_path + "/allpoints")
+

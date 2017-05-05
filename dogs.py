@@ -83,7 +83,7 @@ def mindis(x, xi):
     x = x.reshape(-1, 1)
     y = float('inf')
     index = float('inf')
-    x1 = np.copy(x) * float('inf')
+    x1 = np.copy(x) * 10e10
     N = xi.shape[1]
     for i in range(N):
         y1 = np.linalg.norm(x[:, 0] - xi[:, i])
@@ -556,13 +556,11 @@ def solver_lorenz():  # flag = 1 : new point
     bnd1 = var_opt['lb'][0]
     bnd2 = var_opt['ub'][0]
     n = var_opt['n'][0, 0]
-    T_lorenz = var_opt['T_lorenz'][0, 0]
-    h = var_opt['h_lorenz'][0, 0]
-    user = var_opt['user'][0]
-    if n == 1:
-        y0 = np.array([23.5712])
-    elif n == 3:
-        y0 = np.array([23.5712, 23.5712, 23.5712])
+    T_lorenz = 5
+    h = 0.005
+
+    y0 = np.array([23.5712])
+
     time_method = 1
     DT = 10
 
@@ -586,7 +584,7 @@ def solver_lorenz():  # flag = 1 : new point
 
         fout_surr = open("allpoints/surr_J_new.dat", "w")
         for i in range(zs.shape[0]):
-            fout_surr.write(str(zs[i]) + "\n")
+            fout_surr.write(str((zs[i] - y0)[0]) + "\n")
         fout_surr.close()
 
         fout = {'zs': zs, 'ys': ys, 'xs': xs, 'h': h, 'T': T, 'J': J}
@@ -594,13 +592,13 @@ def solver_lorenz():  # flag = 1 : new point
 
         return
 
-    else:  # flag = 2, this is mesh refinement iteration, no function evaluation is performed.
+    else:  # flag = 2, this is mesh refinement iteration, no function evaluation is needed.
 
         return
 #################  The alpha-DOGS algprithm for lorenz system  ##################
 
 
-def DOGS_standalone_lorenz_IC():
+def DOGS_standalone_IC():
     '''
     This function reads the set of evaluated points and writes them into the desired file to perform function evaluations
     Note: DOGS_standalone() only exists at the inactivated iterations.
@@ -621,13 +619,12 @@ def DOGS_standalone_lorenz_IC():
     user = var_opt['user'][0]
     idx = var_opt['num_point'][0, 0]
     flag = var_opt['flag'][0, 0]
-    T_lorenz = var_opt['T_lorenz'][0, 0]
     method = var_opt['inter_par_method']
     xE = var_opt['xE']
     xU = var_opt['xU']
     k = var_opt['iter'][0, 0]
     iter_max = var_opt['iter_max'][0, 0]
-    y0 = var_opt['y0'][0]
+
 
     if xU.shape[1] == 0:
         xU = xU.reshape(n, 0)
@@ -641,13 +638,12 @@ def DOGS_standalone_lorenz_IC():
     if k != 1:
 
         zs = np.loadtxt("allpoints/surr_J_new.dat")
-        J = np.abs(np.mean(zs) - y0)[0]
-        # one_point = io.loadmat("allpoints/pt_to_eval" + str(idx) + ".mat")
-        # t = one_point['T']
 
         xx = uq.data_moving_average(zs, 40).values
         ind = tr.transient_removal(xx)
         sig = np.sqrt(uq.stationary_statistical_learning_reduced(xx[ind:], 18)[0])
+
+        J = np.abs(np.mean(xx[ind:]))
 
         if flag == 1:  # New point
 
@@ -670,7 +666,6 @@ def DOGS_standalone_lorenz_IC():
     print('Function Evaluation at this iter: y = ', yE[idx] + SigmaT[idx])
     print('Minimum of all data points(yE + SigmaT): min = ', np.min(yE + SigmaT))
     print('argmin: x_min = ', xE[:, np.argmin(yE + SigmaT)])
-    Nm = var_opt['Nm'][0, 0]
     print('Mesh size = ', Nm)
     #############################################################################
     # Normalize the bounds of xE and xU
@@ -736,7 +731,7 @@ def DOGS_standalone_lorenz_IC():
                     else:
                         yu = np.hstack([yu, (interpolate_val(xc, inter_par) - min(yp)) / mindis(xc, xE)[0]])
 
-            if xU.shape[1] != 0:
+            if xU.shape[1] != 0 and mindis(xc, xE)[0] > 1e-10:
                 tmp = (interpolate_val(xc, inter_par) - min(yp)) / mindis(xc, xE)[0]
                 if np.amin(yu) < tmp:
                     ind = np.argmin(yu)
@@ -870,7 +865,7 @@ def DOGS_standalone_lorenz_IC():
 ###################################  Delta-DOGS ##############################
 
 
-def Delta_DOGS_standalone_lorenz():
+def Delta_DOGS_standalone():
     '''
     This function reads the set of evaluated points and writes them into the desired file to perform function evaluations
     Note: DOGS_standalone() only exists at the inactivated iterations.
@@ -1049,7 +1044,4 @@ def Delta_DOGS_standalone_lorenz():
                 io.savemat("allpoints/pre_opt", var_opt)
 
                 return
-
-
-
 

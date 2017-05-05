@@ -173,9 +173,9 @@ def lorenz_lost2(xi, T, h, bnd2, bnd1, y0 = 0,  method=1, ind_exist=-1):
         J = np.abs(np.mean(zs)-y0)[0]
         return J, zs, ys, xs
     elif n == 2:
-        J = (np.sum(((np.mean(zs)-y0[0])**2, (np.std(zs)-y0[1])**2)))/len(y0)*1.0
+        J = (np.sum(((np.mean(zs)-y0[0])**2, (np.std(zs)-y0[0])**2)))/len(y0)*1.0
         return J, zs, ys, xs
     else:
-        J = (np.sum(((np.mean(zs) - y0[0]) ** 2, (np.std(zs) - y0[1]) ** 2))) / len(y0) * 1.0
+        J = (np.sum(((np.mean(zs) - y0[0]) ** 2, (np.std(zs) - y0[0]) ** 2))) / len(y0) * 1.0
         return J, zs, ys, xs
 

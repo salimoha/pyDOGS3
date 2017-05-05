@@ -34,7 +34,7 @@ def transient_removal(x):
     for kk in np.arange(k):
         y[kk] = np.var(x[kk + 1:]) * 1.0 / (N - kk - 1.0)
     y = np.array(-y)
-    # ind = y.argmax(0)
+
     ind = np.argmax(y)
 
     return ind
@@ -66,6 +66,7 @@ def transient_drag(x,Safety=13):
                     INDEX = np.copy(IND)
 # x = readInputFile(data1FilePath)
 
+
 def relax_data(xc,numSTD=6):
 #     x = pd.Series(xc,index='Drag')
     thershold = np.median(xc)+np.std(xc)*numSTD
@@ -75,13 +76,14 @@ def relax_data(xc,numSTD=6):
     xc[idt2]=np.nan
     return xc
 
-def data_moving_average(ym,mm=40):
+
+def data_moving_average(ym, mm=40):
     #reducing the size of data. Since it is stationary its std and mean do not change
-    NN=len(ym);
+    NN=len(ym)
     ym2 = ym[:int(math.floor(NN/mm)*mm)]
-    #     print(ym2)
-    x = pd.DataFrame(np.reshape(ym2,(math.floor(NN/mm),mm)))
+
+    x = pd.DataFrame(np.reshape(ym2, (math.floor(NN/mm), mm)))
     y = np.mean(x, axis=1)
-    #     print(y)
+
     return y
 
